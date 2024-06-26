@@ -1,4 +1,4 @@
-# groqeval/models/output_models.py
+# groqeval/models/output.py
 from typing import List, Optional
 from pydantic import BaseModel
 
