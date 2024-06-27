@@ -1,0 +1,27 @@
+[build-system]
+requires = [
+    "setuptools>=42",
+    "wheel"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "groqeval"
+version = "0.1.0"
+description = "groqeval is a simple-to-use, open-source LLM evaluation framework that uses groq for evaluation."
+authors = [
+    { name = "Samriddhi Sinha", email = "samriddhidjokestersinha@gmail.com" }
+]
+
+[project.license]
+file = "LICENSE"
+
+readme = "README.md"
+requires-python = ">=3.10"
+
+dependencies = [
+    "groq==0.9.0"
+]
+
+[tool.twine]
+repository = "pypi"
