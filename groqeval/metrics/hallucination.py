@@ -70,18 +70,18 @@ class Hallucination(BaseMetric):
             temperature=0,
             response_format={"type": "json_object"}
         )
-        return ScoredContext.model_validate_json(response.choices[0].message.content)
+        return ScoredContext.model_validate_json(response.choices[0].message.content), json.loads(response.choices[0].message.content)
     
     def score(self):
-        scored_context = self.score_hallucination()
+        scored_context, output_dictionary = self.score_hallucination()
         if scored_context.scores:
             average_score = sum([context.score for context in scored_context.scores]) / len(scored_context.scores)
             return {
                 'score': average_score,
-                'score_breakdown': scored_context
+                'score_breakdown': output_dictionary
             }
         else:
             return {
                 'score': 0,  # Default to 0 if there are no sentences to score
-                'score_breakdown': scored_context
+                'score_breakdown': output_dictionary
             }
