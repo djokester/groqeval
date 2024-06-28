@@ -9,6 +9,7 @@ build-backend = "setuptools.build_meta"
 name = "groqeval"
 version = "0.1.0"
 description = "groqeval is a simple-to-use, open-source LLM evaluation framework that uses groq for evaluation."
+readme = "README.md"
 authors = [
     { name = "Samriddhi Sinha", email = "samriddhidjokestersinha@gmail.com" }
 ]

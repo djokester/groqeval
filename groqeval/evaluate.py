@@ -1,5 +1,6 @@
 # groqeval/client.py
 import importlib
+import pkgutil
 from groq import Groq
 from .metrics.base_metric import BaseMetric
 
@@ -20,3 +21,17 @@ class GroqEval:
 
         except (ImportError, AttributeError, TypeError) as e:
             raise ValueError(f"No valid metric found for: {metric_name}") from e
+        
+    def list_metrics(self):
+        metric_list = []
+        # Assuming metrics are in groqeval/metrics directory
+        package = 'groqeval.metrics'
+        for finder, name, ispkg in pkgutil.iter_modules([package.replace('.', '/')]):
+            if not ispkg:
+                module = importlib.import_module(f"{package}.{name}")
+                for attribute_name in dir(module):
+                    attribute = getattr(module, attribute_name)
+                    if isinstance(attribute, type) and issubclass(attribute, BaseMetric) and attribute is not BaseMetric:
+                        metric_list.append(attribute.__name__)
+
+        return metric_list
