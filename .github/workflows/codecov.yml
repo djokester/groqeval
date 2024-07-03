@@ -13,7 +13,7 @@ jobs:
         with:
           python-version: '3.10'
       - name: Install dependencies
-        run: pip install -r requirements.txt pytest coverage
+        run: pip install -r requirements.txt pytest pytest-cov
       - name: Install the package
         run: pip install -e .
       - name: Run tests and collect coverage
