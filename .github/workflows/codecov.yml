@@ -1,7 +1,15 @@
 name: Codecov
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+    branches:
+      - '**'
 jobs:
   run:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -17,7 +25,7 @@ jobs:
       - name: Install the package
         run: pip install -e .
       - name: Run tests and collect coverage
-        run: pytest --cov app ${{ env.CODECOV_ATS_TESTS }}
+        run: pytest --cov groqeval tests/
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
       - name: Upload coverage to Codecov
