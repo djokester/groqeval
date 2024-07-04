@@ -5,6 +5,9 @@ from groq import Groq
 from .metrics.base_metric import BaseMetric
 
 class GroqEval:
+    """
+    The main orchestrator for instnatiating evaluation
+    """
     def __init__(self, api_key):
         self.client = Groq(api_key=api_key)
 
@@ -20,13 +23,16 @@ class GroqEval:
             raise TypeError(f"{class_name} is not a valid metric class")
 
         except (ImportError, AttributeError, TypeError) as e:
-            raise ValueError(f"No valid metric found for: {metric_name}") from e
-        
+            raise e
+
     def list_metrics(self):
+        """
+            Lists all the available metrics
+        """
         metric_list = []
         # Assuming metrics are in groqeval/metrics directory
         package = 'groqeval.metrics'
-        for finder, name, ispkg in pkgutil.iter_modules([package.replace('.', '/')]):
+        for _, name, ispkg in pkgutil.iter_modules([package.replace('.', '/')]):
             if not ispkg:
                 module = importlib.import_module(f"{package}.{name}")
                 for attribute_name in dir(module):
