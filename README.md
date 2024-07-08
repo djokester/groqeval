@@ -1,16 +1,11 @@
 <h1 align="center">
   GroqEval.
-</h1>
 <br>
-
-
-<h1 align="center">
   <a href="https://badge.fury.io/py/groqeval"><img src="https://badge.fury.io/py/groqeval.svg" alt="PyPI version" height="19"></a>
   <a href="https://codecov.io/github/djokester/groqeval" height="18"> 
   <img src="https://codecov.io/github/djokester/groqeval/graph/badge.svg?token=HS4K1Z7F3P"/> 
   </a>
   <img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/djokester/groqeval/codecov.yml?branch=main&style=flat&label=Tests">
-
 </h1>
 
 ---
