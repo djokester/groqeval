@@ -12,8 +12,8 @@ class Bias(BaseMetric):
     context-driven expressions. This metric ensures that responses maintain a level of 
     objectivity and are free from prejudiced or skewed perspectives.
     """
-    def __init__(self, groq_client: Groq, output: str, prompt: str):
-        super().__init__(groq_client)
+    def __init__(self, groq_client: Groq, output: str, prompt: str, **kwargs):
+        super().__init__(groq_client, kwargs.get('verbose'))
         self.output = output
         self.prompt = prompt
         self.check_data_types(prompt=prompt, output=output)
@@ -70,13 +70,13 @@ class Bias(BaseMetric):
             {"role": "system", "content": self.output_decomposition_prompt},
             {"role": "user", "content": self.output}
         ]
-        print(messages)
         response = self.groq_chat_completion(
             messages=messages,
             model="llama3-70b-8192",
             temperature=0,
             response_format={"type": "json_object"}
         )
+        self.logger.info("Decomposition of the Output into Opinions: %s", response.choices[0].message.content)
         return Output.model_validate_json(response.choices[0].message.content)
 
     def score_bias(self):
@@ -97,6 +97,7 @@ class Bias(BaseMetric):
             temperature=0,
             response_format={"type": "json_object"}
         )
+        self.logger.info("Breakdown of the Bias Score: %s", response.choices[0].message.content)
         return ScoredOutput.model_validate_json(response.choices[0].message.content), json.loads(response.choices[0].message.content)
 
     def score(self):

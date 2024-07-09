@@ -12,8 +12,8 @@ class Faithfulness(BaseMetric):
     content is not only relevant but also accurate and truthful with respect to the given context, 
     critical for maintaining the integrity and reliability of the model's responses.
     """
-    def __init__(self, groq_client: Groq, context: List[str], output: str):
-        super().__init__(groq_client)
+    def __init__(self, groq_client: Groq, context: List[str], output: str, **kwargs):
+        super().__init__(groq_client, kwargs.get('verbose'))
         self.context = context
         self.output = output
         self.check_data_types(context=context, output=output)
@@ -80,13 +80,13 @@ class Faithfulness(BaseMetric):
             {"role": "system", "content": self.output_decomposition_prompt},
             {"role": "user", "content": self.output}
         ]
-        print(messages)
         response = self.groq_chat_completion(
             messages=messages,
             model="llama3-70b-8192",
             temperature=0,
             response_format={"type": "json_object"}
         )
+        self.logger.info("Decomposition of the Output into Claims: %s", response.choices[0].message.content)
         return Output.model_validate_json(response.choices[0].message.content)
 
     def score_faithfulness(self):
@@ -106,13 +106,13 @@ class Faithfulness(BaseMetric):
             {"role": "system", "content": self.faithfulness_prompt},
             {"role": "user", "content": json.dumps({"sentences": [s.string for s in coherent_sentences]}, indent=2)}
         ]
-        print(messages)
         response = self.groq_chat_completion(
             messages=messages,
             model="llama3-70b-8192",
             temperature=0,
             response_format={"type": "json_object"}
         )
+        self.logger.info("Breakdown of the Faithfulness Score: %s", response.choices[0].message.content)
         return ScoredOutput.model_validate_json(response.choices[0].message.content), json.loads(response.choices[0].message.content)
 
     def score(self):

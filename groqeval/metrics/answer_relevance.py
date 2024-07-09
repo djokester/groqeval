@@ -12,8 +12,8 @@ class AnswerRelevance(BaseMetric):
     relevance to the original question, helping to gauge the utility and appropriateness 
     of the model's responses.
     """
-    def __init__(self, groq_client: Groq, output: str, prompt: str):
-        super().__init__(groq_client)
+    def __init__(self, groq_client: Groq, output: str, prompt: str, **kwargs):
+        super().__init__(groq_client, kwargs.get('verbose'))
         self.output = output
         self.prompt = prompt
         self.check_data_types(prompt=prompt, output=output)
@@ -66,13 +66,13 @@ class AnswerRelevance(BaseMetric):
             {"role": "system", "content": self.output_decomposition_prompt},
             {"role": "user", "content": self.output}
         ]
-        print(messages)
         response = self.groq_chat_completion(
             messages=messages,
             model="llama3-70b-8192",
             temperature=0,
             response_format={"type": "json_object"}
         )
+        self.logger.info("Decomposition of the Output into Statements: %s", response.choices[0].message.content)
         return Output.model_validate_json(response.choices[0].message.content)
 
     def score_relevance(self):
@@ -93,6 +93,7 @@ class AnswerRelevance(BaseMetric):
             temperature=0,
             response_format={"type": "json_object"}
         )
+        self.logger.info("Breakdown of the Answer Relevance Score: %s", response.choices[0].message.content)
         return ScoredOutput.model_validate_json(response.choices[0].message.content), json.loads(response.choices[0].message.content)
 
     def score(self):

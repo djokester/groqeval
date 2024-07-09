@@ -27,7 +27,6 @@ evaluator = GroqEval(api_key=API_KEY)
 The evaluator is the central orchestrator that initializes the metrics. 
 
 ```python
-from groqeval.evaluate import GroqEval
 metrics = evaluator(metric_name, **kwargs)
 ```
 

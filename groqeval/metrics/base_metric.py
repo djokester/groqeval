@@ -1,9 +1,16 @@
+import logging
+from groq import Groq
+
 class BaseMetric:
     """
     The Base Metric class.
     """
-    def __init__(self, groq_client):
+    def __init__(self, groq_client: Groq, verbose: bool = None):
         self.groq_client = groq_client
+        self.logger = logging.getLogger(__name__)
+        if verbose:
+            self.logger.setLevel(logging.INFO)
+
 
     def groq_chat_completion(self, messages, model, temperature=0.5, response_format=None):
         """
@@ -15,7 +22,6 @@ class BaseMetric:
             temperature=temperature,
             response_format=response_format
         )
-        print(chat_completion.choices[0].message.content)
         return chat_completion
 
     def check_data_types(self, **kwargs):
@@ -23,19 +29,20 @@ class BaseMetric:
         Checks for empty strings in the arguments
         """
         for key, value in kwargs.items():
-            if key != "context":
-                if value == "":
-                    raise ValueError(f"'{key}' cannot be an empty string.")
-                if not isinstance(value, str):
-                    raise TypeError(f"'{key}' must be a string")
-            else:
-                if len(value) == 0:
-                    raise ValueError(f"'{key}' cannot be an empty list.")
-                if not isinstance(value, list):
-                    raise TypeError(f"'{key}' must be a list of strings")
+            if key != "verbose":
+                if key != "context":
+                    if value == "":
+                        raise ValueError(f"'{key}' cannot be an empty string.")
+                    if not isinstance(value, str):
+                        raise TypeError(f"'{key}' must be a string")
                 else:
-                    if not all(isinstance(item, str) for item in value):
-                        raise TypeError(f"All items in '{key}' must be strings")
+                    if len(value) == 0:
+                        raise ValueError(f"'{key}' cannot be an empty list.")
+                    if not isinstance(value, list):
+                        raise TypeError(f"'{key}' must be a list of strings")
+                    else:
+                        if not all(isinstance(item, str) for item in value):
+                            raise TypeError(f"All items in '{key}' must be strings")
 
 
 
