@@ -96,7 +96,7 @@ class Hallucination(BaseMetric):
             temperature=0,
             response_format={"type": "json_object"}
         )
-        self.logger.info("Decomposition of the Context into Statements: %s", response.choices[0].message.content)
+        self.logger.info("Decomposition of the Context into Statements: \n%s", response.choices[0].message.content)
         return Context.model_validate_json(response.choices[0].message.content)
     
     @cached(cache=TTLCache(maxsize=100, ttl=300))
@@ -118,7 +118,7 @@ class Hallucination(BaseMetric):
             temperature=0,
             response_format={"type": "json_object"}
         )
-        self.logger.info("Breakdown of the Hallucination Score: %s", response.choices[0].message.content)
+        self.logger.info("Breakdown of the Hallucination Score: \n%s", response.choices[0].message.content)
         return ScoredContext.model_validate_json(response.choices[0].message.content), json.loads(response.choices[0].message.content)
     
     @property

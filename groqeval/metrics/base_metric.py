@@ -11,8 +11,17 @@ class BaseMetric(ABC):
         self.groq_client = groq_client
         self.aggregation = statistics.mean
         self.logger = logging.getLogger(__name__)
+        handler = logging.StreamHandler()  # Stream handler to output to the console
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
+        self.logger.propagate = False
+        
         if verbose:
-            self.logger.setLevel(logging.INFO)
+            self.logger.setLevel(logging.INFO)  # Set to DEBUG to see all levels of logs
+            self.logger.info("Verbose Mode is on.")
+        else:
+            self.logger.setLevel(logging.WARNING)
 
     def groq_chat_completion(self, messages, model, temperature=0.5, response_format=None):
         """

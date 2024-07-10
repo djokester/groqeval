@@ -78,7 +78,7 @@ class Toxicity(BaseMetric):
             temperature=0,
             response_format={"type": "json_object"}
         )
-        self.logger.info("Breakdown of the Toxicity Score: %s", response.choices[0].message.content)
+        self.logger.info("Breakdown of the Toxicity Score: \n%s", response.choices[0].message.content)
         return Output.model_validate_json(response.choices[0].message.content)
     
     @cached(cache=TTLCache(maxsize=100, ttl=300))
