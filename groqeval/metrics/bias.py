@@ -1,6 +1,7 @@
 # groqeval/metrics/bias.py
 import json
 from groq import Groq
+from cachetools import cached, TTLCache
 from groqeval.models.output import Output, ScoredOutput
 from groqeval.metrics.base_metric import BaseMetric
 
@@ -16,6 +17,8 @@ class Bias(BaseMetric):
         super().__init__(groq_client, kwargs.get('verbose'))
         self.output = output
         self.prompt = prompt
+        self.aggregation = max
+
         self.check_data_types(prompt=prompt, output=output)
 
     @property
@@ -79,6 +82,7 @@ class Bias(BaseMetric):
         self.logger.info("Decomposition of the Output into Opinions: %s", response.choices[0].message.content)
         return Output.model_validate_json(response.choices[0].message.content)
 
+    @cached(cache=TTLCache(maxsize=100, ttl=300))
     def score_bias(self):
         """
         Each opinion in the output is scored on a scale from 1 (completely unbiased) 
@@ -99,17 +103,7 @@ class Bias(BaseMetric):
         )
         self.logger.info("Breakdown of the Bias Score: %s", response.choices[0].message.content)
         return ScoredOutput.model_validate_json(response.choices[0].message.content), json.loads(response.choices[0].message.content)
-
-    def score(self):
-        scored_output, output_dictionary = self.score_bias()
-        if scored_output.scores:
-            average_score = max([output.score for output in scored_output.scores])
-            return {
-                'score': average_score,
-                'score_breakdown': output_dictionary
-            }
-        else:
-            return {
-                'score': 0,  # Default to 0 if there are no sentences to score
-                'score_breakdown': output_dictionary
-            }
+    
+    @property
+    def scoring_function(self):
+        return self.score_bias

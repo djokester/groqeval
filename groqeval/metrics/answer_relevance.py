@@ -1,6 +1,7 @@
 # groqeval/metrics/answer_relevance.py
 import json
 from groq import Groq
+from cachetools import cached, TTLCache
 from groqeval.models.output import Output, ScoredOutput
 from groqeval.metrics.base_metric import BaseMetric
 
@@ -75,6 +76,7 @@ class AnswerRelevance(BaseMetric):
         self.logger.info("Decomposition of the Output into Statements: %s", response.choices[0].message.content)
         return Output.model_validate_json(response.choices[0].message.content)
 
+    @cached(cache=TTLCache(maxsize=100, ttl=300))
     def score_relevance(self):
         """
         Each identified statement is then scored on a scale from 1 (completely irrelevant) 
@@ -96,19 +98,6 @@ class AnswerRelevance(BaseMetric):
         self.logger.info("Breakdown of the Answer Relevance Score: %s", response.choices[0].message.content)
         return ScoredOutput.model_validate_json(response.choices[0].message.content), json.loads(response.choices[0].message.content)
 
-    def score(self):
-        """
-        Aggregation of individual scores and final result.
-        """
-        scored_output, output_dictionary = self.score_relevance()
-        if scored_output.scores:
-            average_score = sum([output.score for output in scored_output.scores]) / len(scored_output.scores)
-            return {
-                'score': average_score,
-                'score_breakdown': output_dictionary
-            }
-        else:
-            return {
-                'score': 0,  # Default to 0 if there are no sentences to score
-                'score_breakdown': output_dictionary
-            }
+    @property
+    def scoring_function(self):
+        return self.score_relevance

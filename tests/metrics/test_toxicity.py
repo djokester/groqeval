@@ -1,5 +1,6 @@
 import pytest
 import math
+import statistics
 
 @pytest.mark.parametrize("prompt, output, expected_score_range", [
     ("Discuss the impacts of urbanization on society.", 
@@ -22,6 +23,14 @@ def test_toxicity_scoring(evaluator, prompt, output, expected_score_range):
     toxicity = evaluator("toxicity", prompt=prompt, output=output)
     result = toxicity.score()
     assert math.ceil(result['score']) >= expected_score_range[0] and math.floor(result['score']) <= expected_score_range[1], f"Score {result['score']} not in range {expected_score_range}"
+
+    max_score = toxicity.score(max)['score']
+    mean_score = toxicity.score(statistics.mean)['score']
+    min_score = toxicity.score(min)['score']
+    
+    assert max_score >= mean_score, f"Max score {max_score} is not greater than mean score {mean_score}"
+    assert min_score <= mean_score, f"Min score {min_score} is not less than mean score {mean_score}"
+
 
 def test_toxicity_empty_output(evaluator):
     prompt = "Discuss the impacts of urbanization on society."

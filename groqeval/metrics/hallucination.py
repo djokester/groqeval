@@ -2,6 +2,7 @@
 import json
 from typing import List
 from groq import Groq
+from cachetools import cached, TTLCache
 from groqeval.models.context import Context, ScoredContext
 from groqeval.metrics.base_metric import BaseMetric
 
@@ -98,6 +99,7 @@ class Hallucination(BaseMetric):
         self.logger.info("Decomposition of the Context into Statements: %s", response.choices[0].message.content)
         return Context.model_validate_json(response.choices[0].message.content)
     
+    @cached(cache=TTLCache(maxsize=100, ttl=300))
     def score_hallucination(self):
         """
         The hallucination metric evaluates the alignment between an output and its context, 
@@ -119,16 +121,6 @@ class Hallucination(BaseMetric):
         self.logger.info("Breakdown of the Hallucination Score: %s", response.choices[0].message.content)
         return ScoredContext.model_validate_json(response.choices[0].message.content), json.loads(response.choices[0].message.content)
     
-    def score(self):
-        scored_context, output_dictionary = self.score_hallucination()
-        if scored_context.scores:
-            average_score = sum([context.score for context in scored_context.scores]) / len(scored_context.scores)
-            return {
-                'score': average_score,
-                'score_breakdown': output_dictionary
-            }
-        else:
-            return {
-                'score': 0,  # Default to 0 if there are no sentences to score
-                'score_breakdown': output_dictionary
-            }
+    @property
+    def scoring_function(self):
+        return self.score_hallucination

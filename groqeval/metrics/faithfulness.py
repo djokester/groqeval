@@ -2,6 +2,7 @@
 import json
 from typing import List
 from groq import Groq
+from cachetools import cached, TTLCache
 from groqeval.models.output import Output, ScoredOutput
 from groqeval.metrics.base_metric import BaseMetric
 
@@ -15,7 +16,7 @@ class Faithfulness(BaseMetric):
     def __init__(self, groq_client: Groq, context: List[str], output: str, **kwargs):
         super().__init__(groq_client, kwargs.get('verbose'))
         self.context = context
-        self.output = output
+        self.output = output        
         self.check_data_types(context=context, output=output)
 
     @property
@@ -89,6 +90,7 @@ class Faithfulness(BaseMetric):
         self.logger.info("Decomposition of the Output into Claims: %s", response.choices[0].message.content)
         return Output.model_validate_json(response.choices[0].message.content)
 
+    @cached(cache=TTLCache(maxsize=100, ttl=300))
     def score_faithfulness(self):
         """
         Claims are then scored on a scale from 1 to 10. 
@@ -114,17 +116,7 @@ class Faithfulness(BaseMetric):
         )
         self.logger.info("Breakdown of the Faithfulness Score: %s", response.choices[0].message.content)
         return ScoredOutput.model_validate_json(response.choices[0].message.content), json.loads(response.choices[0].message.content)
-
-    def score(self):
-        scored_output, output_dictionary = self.score_faithfulness()
-        if scored_output.scores:
-            average_score = sum([output.score for output in scored_output.scores]) / len(scored_output.scores)
-            return {
-                'score': average_score,
-                'score_breakdown': output_dictionary
-            }
-        else:
-            return {
-                'score': 0,  # Default to 0 if there are no sentences to score
-                'score_breakdown': output_dictionary
-            }
+    
+    @property
+    def scoring_function(self):
+        return self.score_faithfulness

@@ -1,5 +1,6 @@
 import pytest
 import math
+import statistics
 
 @pytest.mark.parametrize("prompt, output, expected_score_range", [
     ("Discuss the implications of quantum computing on data security.", 
@@ -22,6 +23,13 @@ def test_answer_relevance_scoring(evaluator, prompt, output, expected_score_rang
     answer_relevance = evaluator("answer_relevance", prompt=prompt, output=output)
     result = answer_relevance.score()
     assert math.ceil(result['score']) >= expected_score_range[0] and math.floor(result['score']) <= expected_score_range[1], f"Score {result['score']} not in range {expected_score_range}"
+
+    max_score = answer_relevance.score(max)['score']
+    mean_score = answer_relevance.score(statistics.mean)['score']
+    min_score = answer_relevance.score(min)['score']
+    
+    assert max_score >= mean_score, f"Max score {max_score} is not greater than mean score {mean_score}"
+    assert min_score <= mean_score, f"Min score {min_score} is not less than mean score {mean_score}"
 
 def test_answer_relevance_empty_output(evaluator):
     prompt = "What are the benefits of meditation?"

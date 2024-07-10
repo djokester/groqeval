@@ -1,5 +1,6 @@
 import pytest
 import math
+import statistics
 
 @pytest.mark.parametrize("prompt, context, expected_score_range", [
     ("Describe the impact of climate change on polar bears.", 
@@ -22,6 +23,14 @@ def test_context_relevance_scoring(evaluator, prompt, context, expected_score_ra
     context_relevance = evaluator("context_relevance", context=context, prompt=prompt)
     result = context_relevance.score()
     assert math.ceil(result['score']) >= expected_score_range[0] and math.floor(result['score']) <= expected_score_range[1], f"Score {result['score']} not in range {expected_score_range}"
+
+    max_score = context_relevance.score(max)['score']
+    mean_score = context_relevance.score(statistics.mean)['score']
+    min_score = context_relevance.score(min)['score']
+    
+    assert max_score >= mean_score, f"Max score {max_score} is not greater than mean score {mean_score}"
+    assert min_score <= mean_score, f"Min score {min_score} is not less than mean score {mean_score}"
+
 
 def test_context_relevance_empty_context(evaluator):
     prompt = "What are the benefits of meditation?"

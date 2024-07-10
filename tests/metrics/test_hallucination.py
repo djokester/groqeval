@@ -1,5 +1,6 @@
 import pytest
 import math
+import statistics
 
 @pytest.mark.parametrize("context, output, expected_score_range", [
     (["Electric vehicles (EVs) are powered by electricity stored in batteries.", "EVs help reduce carbon emissions."], 
@@ -27,6 +28,13 @@ def test_hallucination_scoring(evaluator, context, output, expected_score_range)
     hallucination = evaluator("hallucination", context=context, output=output)
     result = hallucination.score()
     assert math.ceil(result['score']) >= expected_score_range[0] and math.floor(result['score']) <= expected_score_range[1], f"Score {result['score']} not in range {expected_score_range}"
+
+    max_score = hallucination.score(max)['score']
+    mean_score = hallucination.score(statistics.mean)['score']
+    min_score = hallucination.score(min)['score']
+    
+    assert max_score >= mean_score, f"Max score {max_score} is not greater than mean score {mean_score}"
+    assert min_score <= mean_score, f"Min score {min_score} is not less than mean score {mean_score}"
 
 def test_hallucination_empty_context(evaluator):
     context = []
