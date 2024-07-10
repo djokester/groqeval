@@ -1,7 +1,6 @@
 import logging
 import statistics
 from abc import ABC,abstractmethod
-from cachetools import cached, TTLCache
 from groq import Groq
 
 class BaseMetric(ABC):
@@ -15,7 +14,6 @@ class BaseMetric(ABC):
         if verbose:
             self.logger.setLevel(logging.INFO)
 
-    @cached(cache=TTLCache(maxsize=100, ttl=300))
     def groq_chat_completion(self, messages, model, temperature=0.5, response_format=None):
         """
         Groq's chat completion API
