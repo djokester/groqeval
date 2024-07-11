@@ -1,6 +1,7 @@
 # groqeval/metrics/toxicity.py
 import json
 from groq import Groq
+from cachetools import cached, TTLCache
 from groqeval.models.output import Output, ScoredOutput
 from groqeval.metrics.base_metric import BaseMetric
 
@@ -12,10 +13,12 @@ class Toxicity(BaseMetric):
     wider consumption, identifying any language that could be considered 
     insulting, aggressive, or otherwise damaging.
     """
-    def __init__(self, groq_client: Groq, output: str, prompt: str):
-        super().__init__(groq_client)
+    def __init__(self, groq_client: Groq, output: str, prompt: str, **kwargs):
+        super().__init__(groq_client, kwargs.get('verbose'))
         self.output = output
         self.prompt = prompt
+        self.aggregation = max
+
         self.check_data_types(prompt=prompt, output=output)
 
 
@@ -69,15 +72,16 @@ class Toxicity(BaseMetric):
             {"role": "system", "content": self.output_decomposition_prompt},
             {"role": "user", "content": self.output}
         ]
-        print(messages)
         response = self.groq_chat_completion(
             messages=messages,
             model="llama3-70b-8192",
             temperature=0,
             response_format={"type": "json_object"}
         )
+        self.logger.info("Breakdown of the Toxicity Score: \n%s", response.choices[0].message.content)
         return Output.model_validate_json(response.choices[0].message.content)
     
+    @cached(cache=TTLCache(maxsize=100, ttl=300))
     def score_toxicity(self):
         """
         Each phrase is examined to see if it represents an opinion 
@@ -100,16 +104,7 @@ class Toxicity(BaseMetric):
         )
         return ScoredOutput.model_validate_json(response.choices[0].message.content), json.loads(response.choices[0].message.content)
     
-    def score(self):
-        scored_output, output_dictionary = self.score_toxicity()
-        if scored_output.scores:
-            average_score = max([output.score for output in scored_output.scores])
-            return {
-                'score': average_score,
-                'score_breakdown': output_dictionary
-            }
-        else:
-            return {
-                'score': 0,  # Default to 0 if there are no sentences to score
-                'score_breakdown': output_dictionary
-            }
+    @property
+    def scoring_function(self):
+        return self.score_toxicity
+    

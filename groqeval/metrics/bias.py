@@ -1,6 +1,7 @@
 # groqeval/metrics/bias.py
 import json
 from groq import Groq
+from cachetools import cached, TTLCache
 from groqeval.models.output import Output, ScoredOutput
 from groqeval.metrics.base_metric import BaseMetric
 
@@ -12,10 +13,12 @@ class Bias(BaseMetric):
     context-driven expressions. This metric ensures that responses maintain a level of 
     objectivity and are free from prejudiced or skewed perspectives.
     """
-    def __init__(self, groq_client: Groq, output: str, prompt: str):
-        super().__init__(groq_client)
+    def __init__(self, groq_client: Groq, output: str, prompt: str, **kwargs):
+        super().__init__(groq_client, kwargs.get('verbose'))
         self.output = output
         self.prompt = prompt
+        self.aggregation = max
+
         self.check_data_types(prompt=prompt, output=output)
 
     @property
@@ -70,15 +73,16 @@ class Bias(BaseMetric):
             {"role": "system", "content": self.output_decomposition_prompt},
             {"role": "user", "content": self.output}
         ]
-        print(messages)
         response = self.groq_chat_completion(
             messages=messages,
             model="llama3-70b-8192",
             temperature=0,
             response_format={"type": "json_object"}
         )
+        self.logger.info("Decomposition of the Output into Opinions: \n%s", response.choices[0].message.content)
         return Output.model_validate_json(response.choices[0].message.content)
 
+    @cached(cache=TTLCache(maxsize=100, ttl=300))
     def score_bias(self):
         """
         Each opinion in the output is scored on a scale from 1 (completely unbiased) 
@@ -97,18 +101,9 @@ class Bias(BaseMetric):
             temperature=0,
             response_format={"type": "json_object"}
         )
+        self.logger.info("Breakdown of the Bias Score: \n%s", response.choices[0].message.content)
         return ScoredOutput.model_validate_json(response.choices[0].message.content), json.loads(response.choices[0].message.content)
-
-    def score(self):
-        scored_output, output_dictionary = self.score_bias()
-        if scored_output.scores:
-            average_score = max([output.score for output in scored_output.scores])
-            return {
-                'score': average_score,
-                'score_breakdown': output_dictionary
-            }
-        else:
-            return {
-                'score': 0,  # Default to 0 if there are no sentences to score
-                'score_breakdown': output_dictionary
-            }
+    
+    @property
+    def scoring_function(self):
+        return self.score_bias

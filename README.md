@@ -1,7 +1,12 @@
 <h1 align="center">
   GroqEval.
-</h1>
 <br>
+  <a href="https://badge.fury.io/py/groqeval"><img src="https://badge.fury.io/py/groqeval.svg" alt="PyPI version" height="19"></a>
+  <a href="https://codecov.io/github/djokester/groqeval" height="18"> 
+  <img src="https://codecov.io/github/djokester/groqeval/graph/badge.svg?token=HS4K1Z7F3P"/> 
+  </a>
+  <img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/djokester/groqeval/codecov.yml?branch=main&style=flat&label=Tests">
+</h1>
 
 ---
 
@@ -10,27 +15,49 @@ GroqEval is a powerful and easy-to-use evaluation framework designed specificall
 ## Getting Started
 
 Installation 
+To install GroqEval, simply use pip:
 ```bash
 pip install groqeval
 ```
 
 Initialising an evaluator.  
+To begin using GroqEval, you need to initialize an evaluator with your API key:
 ```python
 from groqeval import GroqEval
 evaluator = GroqEval(api_key=API_KEY)
 ```
-The evaluator is the central orchestrator that initializes the metrics. 
+The evaluator is the central component that orchestrates the initialization and execution of various metrics.
 
+You can create metric instances with the evaluator. Here's the default behavior:
 ```python
-from groqeval.evaluate import GroqEval
+# Default Behaviour
 metrics = evaluator(metric_name, **kwargs)
+
+# Verbosity Enabled
+metrics = evaluator(metric_name, verbose=True, **kwargs)
+```
+Three additional keyword arguments form the basis of evaluation: context, prompt, and output. Their usage varies by metric and is detailed in the respective sections for each metric.
+
+Once the metric class is initialized with the inputs, you can obtain the score by calling the score() function:
+```python
+metrics.score()
+```
+By default the `score` function uses a default aggregation function which is the average for relevance type metrics and max for metrics like bias and toxicity. You can pass a custom aggregation function to the score function. The custom function should accept a list of integers and return a float or integer value:
+```python
+from typing import List, Union
+
+def custom_function(scores: List[int]) -> Union[int, float]:
+    # Define your custom aggregation function. 
+
+metrics.score(aggregation = custom_function)
 ```
 
-To list all the available metrics
+To list all available metrics offered by GroqEval:
 ```python
 >>> evaluator.list_metrics()
 ['AnswerRelevance', 'Bias', 'ContextRelevance', 'Faithfulness', 'Hallucination', 'Toxicity']
 ```
+This section provides an overview of how to set up and use GroqEval. For detailed usage and calculation methods of each metric, refer to the respective metric sections below.
 
 ## Answer Relevance
 The Answer Relevance metric evaluates how accurately and closely the responses of a language model align with the specific query or prompt provided. This metric ensures that each part of the output, recognized as coherent statements, is scored for its relevance to the original question, helping to gauge the utility and appropriateness of the model's responses.

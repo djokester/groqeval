@@ -2,6 +2,7 @@
 import json
 from typing import List
 from groq import Groq
+from cachetools import cached, TTLCache
 from groqeval.models.context import Context, ScoredContext
 from groqeval.metrics.base_metric import BaseMetric
 
@@ -13,8 +14,8 @@ class Hallucination(BaseMetric):
     This is crucial for ensuring that the generated outputs remain grounded in the provided 
     context and do not mislead or introduce inaccuracies.
     """
-    def __init__(self, groq_client: Groq, context: List[str], output: str):
-        super().__init__(groq_client)
+    def __init__(self, groq_client: Groq, context: List[str], output: str, **kwargs):
+        super().__init__(groq_client, kwargs.get('verbose'))
         self.context = context
         self.output = output
         self.check_data_types(context=context, output=output)
@@ -89,15 +90,16 @@ class Hallucination(BaseMetric):
             {"role": "system", "content": self.context_decomposition_prompt},
             {"role": "user", "content": self.format_retrieved_context}
         ]
-        print(messages)
         response = self.groq_chat_completion(
             messages=messages,
             model="llama3-70b-8192",
             temperature=0,
             response_format={"type": "json_object"}
         )
+        self.logger.info("Decomposition of the Context into Statements: \n%s", response.choices[0].message.content)
         return Context.model_validate_json(response.choices[0].message.content)
     
+    @cached(cache=TTLCache(maxsize=100, ttl=300))
     def score_hallucination(self):
         """
         The hallucination metric evaluates the alignment between an output and its context, 
@@ -116,18 +118,9 @@ class Hallucination(BaseMetric):
             temperature=0,
             response_format={"type": "json_object"}
         )
+        self.logger.info("Breakdown of the Hallucination Score: \n%s", response.choices[0].message.content)
         return ScoredContext.model_validate_json(response.choices[0].message.content), json.loads(response.choices[0].message.content)
     
-    def score(self):
-        scored_context, output_dictionary = self.score_hallucination()
-        if scored_context.scores:
-            average_score = sum([context.score for context in scored_context.scores]) / len(scored_context.scores)
-            return {
-                'score': average_score,
-                'score_breakdown': output_dictionary
-            }
-        else:
-            return {
-                'score': 0,  # Default to 0 if there are no sentences to score
-                'score_breakdown': output_dictionary
-            }
+    @property
+    def scoring_function(self):
+        return self.score_hallucination

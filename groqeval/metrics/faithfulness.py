@@ -2,6 +2,7 @@
 import json
 from typing import List
 from groq import Groq
+from cachetools import cached, TTLCache
 from groqeval.models.output import Output, ScoredOutput
 from groqeval.metrics.base_metric import BaseMetric
 
@@ -12,10 +13,10 @@ class Faithfulness(BaseMetric):
     content is not only relevant but also accurate and truthful with respect to the given context, 
     critical for maintaining the integrity and reliability of the model's responses.
     """
-    def __init__(self, groq_client: Groq, context: List[str], output: str):
-        super().__init__(groq_client)
+    def __init__(self, groq_client: Groq, context: List[str], output: str, **kwargs):
+        super().__init__(groq_client, kwargs.get('verbose'))
         self.context = context
-        self.output = output
+        self.output = output        
         self.check_data_types(context=context, output=output)
 
     @property
@@ -80,15 +81,16 @@ class Faithfulness(BaseMetric):
             {"role": "system", "content": self.output_decomposition_prompt},
             {"role": "user", "content": self.output}
         ]
-        print(messages)
         response = self.groq_chat_completion(
             messages=messages,
             model="llama3-70b-8192",
             temperature=0,
             response_format={"type": "json_object"}
         )
+        self.logger.info("Decomposition of the Output into Claims: \n%s", response.choices[0].message.content)
         return Output.model_validate_json(response.choices[0].message.content)
 
+    @cached(cache=TTLCache(maxsize=100, ttl=300))
     def score_faithfulness(self):
         """
         Claims are then scored on a scale from 1 to 10. 
@@ -106,25 +108,15 @@ class Faithfulness(BaseMetric):
             {"role": "system", "content": self.faithfulness_prompt},
             {"role": "user", "content": json.dumps({"sentences": [s.string for s in coherent_sentences]}, indent=2)}
         ]
-        print(messages)
         response = self.groq_chat_completion(
             messages=messages,
             model="llama3-70b-8192",
             temperature=0,
             response_format={"type": "json_object"}
         )
+        self.logger.info("Breakdown of the Faithfulness Score: \n%s", response.choices[0].message.content)
         return ScoredOutput.model_validate_json(response.choices[0].message.content), json.loads(response.choices[0].message.content)
-
-    def score(self):
-        scored_output, output_dictionary = self.score_faithfulness()
-        if scored_output.scores:
-            average_score = sum([output.score for output in scored_output.scores]) / len(scored_output.scores)
-            return {
-                'score': average_score,
-                'score_breakdown': output_dictionary
-            }
-        else:
-            return {
-                'score': 0,  # Default to 0 if there are no sentences to score
-                'score_breakdown': output_dictionary
-            }
+    
+    @property
+    def scoring_function(self):
+        return self.score_faithfulness
